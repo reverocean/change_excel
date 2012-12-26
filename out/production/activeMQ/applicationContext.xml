@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:mvc="http://www.springframework.org/schema/mvc"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:aop="http://www.springframework.org/schema/aop"
+       xmlns:tx="http://www.springframework.org/schema/tx" xmlns:util="http://www.springframework.org/schema/util"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-2.5.xsd
+     http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-2.5.xsd
+     http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-2.5.xsd
+     http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-2.5.xsd
+     http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-2.5.xsd
+     http://www.springframework.org/schema/lang http://www.springframework.org/schema/lang/spring-lang-2.5.xsd
+     http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc-3.0.xsd"
+       default-autowire="byName">
+
+    <context:annotation-config/>
+    <mvc:annotation-driven/>
+    <context:component-scan base-package="activemq.demo.components"/>
+    <context:component-scan base-package="activemq.demo.controllers"/>
+
+    <bean id="connectionFactory" class="org.apache.activemq.ActiveMQConnectionFactory">
+        <property name="brokerURL" value="tcp://localhost:61616"/>
+    </bean>
+    <bean id="local.connectionFactory"
+          class="org.springframework.jms.connection.CachingConnectionFactory">
+        <constructor-arg ref="connectionFactory" />
+    </bean>
+
+    <bean id="myJmsTemplate" class="org.springframework.jms.core.JmsTemplate">
+        <property name="connectionFactory" ref="local.connectionFactory"/>
+        <property name="defaultDestination" ref="userDestination"/>
+        <property name="messageConverter" ref="messageConverter"/>
+        <property name="sessionTransacted" value="true"/>
+    </bean>
+    <bean id="userDestination" class="org.apache.activemq.command.ActiveMQQueue">
+        <constructor-arg index="0" value="ptp.queue.message"/>
+    </bean>
+    <bean id="messageConverter" class="org.springframework.jms.support.converter.SimpleMessageConverter"/>
+
+
+    <bean id="myJmsTemplate2" class="org.springframework.jms.core.JmsTemplate">
+        <property name="connectionFactory" ref="local.connectionFactory"/>
+        <property name="defaultDestination" ref="userDestination2"/>
+        <property name="messageConverter" ref="messageConverter"/>
+        <property name="sessionTransacted" value="true"/>
+    </bean>
+    <bean id="userDestination2" class="org.apache.activemq.command.ActiveMQQueue">
+        <constructor-arg index="0" value="test.queue"/>
+    </bean>
+
+    <bean id="transactionManager" class="org.springframework.jms.connection.JmsTransactionManager">
+        <property name="connectionFactory" ref="local.connectionFactory"/>
+    </bean>
+
+    <tx:advice id="txAdvice" transaction-manager="transactionManager">
+        <!-- the transactional semantics... -->
+
+        <tx:attributes>
+            <!-- all methods starting with 'get' are read-only -->
+            <tx:method name="*" rollback-for="RuntimeException"/>
+        </tx:attributes>
+    </tx:advice>
+
+    <aop:config>
+        <aop:pointcut id="fooServiceOperation" expression="execution(* activemq.demo.components.MyMessageProducer.sendMessage(..))"/>
+        <aop:advisor advice-ref="txAdvice" pointcut-ref="fooServiceOperation"/>
+    </aop:config>
+
+    <bean id="fbean" class="activemq.demo.components.FactoryBean"/>
+    <bean id="str" factory-bean="fbean"
+          factory-method="getStr"/>
+</beans>
