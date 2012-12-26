@@ -110,7 +110,7 @@ public class ChangeExcel {
             List<String> domains = dateAndDomains.get(date);
             Cell cell = row.getCell(3);
             if (cell != null) {
-                domains.add(cell.getStringCellValue().trim());
+                domains.add(getCellValue(cell));
             }
         }
         return dateAndDomains;
@@ -119,14 +119,19 @@ public class ChangeExcel {
     private static String getDate(Row row) {
         Cell dateCell = row.getCell(0);
         if (dateCell != null) {
-            int cellType = dateCell.getCellType();
-            switch (cellType) {
-                case Cell.CELL_TYPE_STRING:
-                    return dateCell.getStringCellValue();
-                case Cell.CELL_TYPE_NUMERIC:
-                    return dateCell.getNumericCellValue() + "";
-            }
+            return getCellValue(dateCell);
         }
         return null;
     }
+
+	private static String getCellValue(Cell dateCell) {
+		int cellType = dateCell.getCellType();
+		switch (cellType) {
+		    case Cell.CELL_TYPE_STRING:
+		        return dateCell.getStringCellValue();
+		    case Cell.CELL_TYPE_NUMERIC:
+		        return dateCell.getNumericCellValue() + "";
+		}
+		return "";
+	}
 }
